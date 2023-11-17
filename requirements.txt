@@ -1,0 +1,6 @@
+brazilcep
+email_validator
+erpbrasil.base
+num2words
+phonenumbers
+workalendar
