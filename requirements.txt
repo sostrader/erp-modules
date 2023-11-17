@@ -4,3 +4,5 @@ erpbrasil.base
 num2words
 phonenumbers
 workalendar
+bravado_core 
+swagger_spec_validator
