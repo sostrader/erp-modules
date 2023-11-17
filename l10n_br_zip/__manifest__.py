@@ -21,5 +21,5 @@
     ],
     "installable": True,
     "development_status": "Mature",
-    # "external_dependencies": {"python": ["brazilcep"]},
+    "external_dependencies": {"python": ["brazilcep"]},
 }
