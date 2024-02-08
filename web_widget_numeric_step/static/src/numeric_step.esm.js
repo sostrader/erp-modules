@@ -4,22 +4,17 @@ import {registry} from "@web/core/registry";
 import {standardFieldProps} from "@web/views/fields/standard_field_props";
 import {_lt} from "@web/core/l10n/translation";
 import {FloatField} from "@web/views/fields/float/float_field";
+import {hasTouch} from "@web/core/browser/feature_detection";
 
 export class NumericStep extends FloatField {
     setup() {
         super.setup();
     }
-    _onFocusInput(ev) {
-        const $el = $(ev.target).parent().find(".widget_numeric_step_btn");
-        $el.removeClass("d-none");
-    }
-    _onFocusOutInput(ev) {
-        const $el = $(ev.target).find(".widget_numeric_step_btn");
-        $el.addClass("d-none");
-    }
     _onStepClick(ev) {
         const $el = $(ev.target).parent().parent().find("input");
-        $el.focus();
+        if (!hasTouch()) {
+            $el.focus();
+        }
         const mode = $(ev.target).data("mode");
         this._doStep(mode);
     }
@@ -65,7 +60,6 @@ export class NumericStep extends FloatField {
 NumericStep.template = "web_widget_numeric_step";
 NumericStep.props = {
     ...standardFieldProps,
-    name: {type: String, optional: true},
     inputType: {type: String, optional: true},
     step: {type: Number, optional: true},
     min: {type: Number, optional: true},
