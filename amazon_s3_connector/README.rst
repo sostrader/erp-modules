@@ -2,7 +2,7 @@
     :target: http://www.gnu.org/licenses/agpl-3.0-standalone.html
     :alt: License: AGPL-3
 
-Odoo Amazon S3 Connector
+S3 Connector
 =======================
 The Amazon S3 uploaded files are displayed in this module. as well as for Amazon S3
 
