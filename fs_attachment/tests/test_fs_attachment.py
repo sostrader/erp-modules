@@ -30,51 +30,6 @@ class TestFSAttachment(TestFSAttachmentCommon):
             f.write(b"new")
         self.assertEqual(attachment.raw, b"new")
 
-    def test_create_attachment_with_meaningful_name(self):
-        """In this test we use a backend with 'optimizes_directory_path',
-        which rewrites the filename to be a meaningful name.
-        We ensure that the rewritten path is consistently used,
-        meaning we can read the file after.
-        """
-        content = b"This is a test attachment"
-        attachment = (
-            self.env["ir.attachment"]
-            .with_context(
-                storage_location=self.backend_optimized.code,
-                force_storage_key="test.txt",
-            )
-            .create({"name": "test.txt", "raw": content})
-        )
-        # the expected store_fname is made of the storage code,
-        # a random middle part, and the filename
-        # example: tmp_opt://te/st/test-198-0.txt
-        # The storage root is NOT part of the store_fname
-        self.assertFalse("tmp/" in attachment.store_fname)
-
-        # remove protocol and file name to keep the middle part
-        sub_path = os.path.dirname(attachment.store_fname.split("://")[1])
-        # the subpath is consistently 'te/st' because the file storage key is forced
-        # if it's arbitrary we might get a random name (3fbc5er....txt), in which case
-        # the middle part would also be 'random', in our example 3f/bc
-        self.assertEqual(sub_path, "te/st")
-
-        # we can read the file, so storage finds it correctly
-        with attachment.open("rb") as f:
-            self.assertEqual(f.read(), content)
-
-        new_content = b"new content"
-        with attachment.open("wb") as f:
-            f.write(new_content)
-
-        # the store fname should have changed, as its version number has increased
-        # e.g. tmp_opt://te/st/test-1766-0.txt to tmp_opt://te/st/test-1766-1.txt
-        # but the protocol and sub path should be the same
-        new_sub_path = os.path.dirname(attachment.store_fname.split("://")[1])
-        self.assertEqual(sub_path, new_sub_path)
-
-        with attachment.open("rb") as f:
-            self.assertEqual(f.read(), new_content)
-
     def test_open_attachment_in_db(self):
         self.env["ir.config_parameter"].sudo().set_param("ir_attachment.location", "db")
         content = b"This is a test attachment in db"
@@ -385,40 +340,3 @@ class TestFSAttachment(TestFSAttachmentCommon):
         self.assertEqual(attachment.checksum, attachment.store_fname.split("/")[-1])
         self.assertEqual(attachment.checksum, attachment.fs_url.split("/")[-1])
         self.assertEqual(attachment.mimetype, "text/plain")
-
-    def test_create_attachments_basic_user(self):
-        demo_user = self.env.ref("base.user_demo")
-        demo_partner = self.env.ref("base.partner_demo")
-        self.temp_backend.use_as_default_for_attachments = True
-        # Ensure basic access
-        group_user = self.env.ref("base.group_user")
-        group_partner_manager = self.env.ref("base.group_partner_manager")
-        demo_user.write(
-            {"groups_id": [(6, 0, [group_user.id, group_partner_manager.id])]}
-        )
-        # Create basic attachment
-        self.ir_attachment_model.with_user(demo_user).create(
-            {"name": "test.txt", "raw": b"content"}
-        )
-        # Create attachment related to model
-        self.ir_attachment_model.with_user(demo_user).create(
-            {
-                "name": "test.txt",
-                "raw": b"content",
-                "res_model": "res.partner",
-                "res_id": demo_partner.id,
-            }
-        )
-        # Create attachment related to field
-        partner_image_field = self.env["ir.model.fields"].search(
-            [("model", "=", "res.partner"), ("name", "=", "image1920")]
-        )
-        self.ir_attachment_model.with_user(demo_user).create(
-            {
-                "name": "test.txt",
-                "raw": b"content",
-                "res_model": "res.partner",
-                "res_id": demo_partner.id,
-                "res_field": partner_image_field.name,
-            }
-        )

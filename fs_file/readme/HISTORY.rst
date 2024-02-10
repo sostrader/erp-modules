@@ -1,27 +1,3 @@
-16.0.1.0.5 (2023-11-30)
-~~~~~~~~~~~~~~~~~~~~~~~
-
-**Bugfixes**
-
-- Ensure the cache is properly set when a new value is assigned to a FSFile field.
-  If the field is stored the value to the cache must be a FSFileValue object
-  linked to the attachment record used to store the file. Otherwise the value
-  must be one given since it could be the result of a compute method. (`#290 <https://github.com/OCA/storage/issues/290>`_)
-
-
-16.0.1.0.4 (2023-10-17)
-~~~~~~~~~~~~~~~~~~~~~~~
-
-**Bugfixes**
-
-- Browse attachment with sudo() to avoid read access errors
-
-  In models that have a multi fs image relation, a new line
-  in form will trigger onchanges and will call the fs.file model
-  'convert_to_cache()' method that will try to browse the attachment
-  with user profile that could have no read rights on attachment model. (`#288 <https://github.com/OCA/storage/issues/288>`_)
-
-
 16.0.1.0.3 (2023-10-05)
 ~~~~~~~~~~~~~~~~~~~~~~~
 

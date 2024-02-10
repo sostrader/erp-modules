@@ -112,14 +112,9 @@ class IrAttachment(models.Model):
     @api.depends("fs_filename")
     def _compute_fs_url(self) -> None:
         for rec in self:
-            new_url = None
-            actual_url = rec.fs_url or None
+            rec.fs_url = None
             if rec.fs_filename:
-                new_url = self.env["fs.storage"]._get_url_for_attachment(rec)
-            # ensure we compare value of same type and not None with False
-            new_url = new_url or None
-            if new_url != actual_url:
-                rec.fs_url = new_url
+                rec.fs_url = self.env["fs.storage"]._get_url_for_attachment(rec)
 
     @api.depends("fs_filename")
     def _compute_fs_url_path(self) -> None:
@@ -135,7 +130,7 @@ class IrAttachment(models.Model):
         for rec in self:
             if rec.store_fname:
                 code = rec.store_fname.partition("://")[0]
-                fs_storage = self.env["fs.storage"].sudo().get_by_code(code)
+                fs_storage = self.env["fs.storage"].get_by_code(code)
                 if fs_storage != rec.fs_storage_id:
                     rec.fs_storage_id = fs_storage
             elif rec.fs_storage_id:
@@ -365,8 +360,8 @@ class IrAttachment(models.Model):
     def _storage_file_read(self, fname: str) -> bytes | None:
         """Read the file from the filesystem storage"""
         fs, _storage, fname = self._fs_parse_store_fname(fname)
-        with fs.open(fname, "rb") as f:
-            return f.read()
+        with fs.open(fname, "rb") as fs:
+            return fs.read()
 
     @api.model
     def _storage_file_write(self, bin_data: bytes) -> str:
@@ -378,8 +373,8 @@ class IrAttachment(models.Model):
         if not fs.exists(dirname):
             fs.makedirs(dirname)
         fname = f"{storage}://{path}"
-        with fs.open(path, "wb") as f:
-            f.write(bin_data)
+        with fs.open(path, "wb") as fs:
+            fs.write(bin_data)
         self._fs_mark_for_gc(fname)
         return fname
 
@@ -463,7 +458,7 @@ class IrAttachment(models.Model):
             # we need to update the store_fname with the new filename by
             # calling the write method of the field since the write method
             # of ir_attachment prevent normal write on store_fname
-            attachment._force_write_store_fname(f"{storage}://{new_filename_with_path}")
+            attachment._force_write_store_fname(f"{storage}://{new_filename}")
             self._fs_mark_for_gc(attachment.store_fname)
 
     def _force_write_store_fname(self, store_fname):

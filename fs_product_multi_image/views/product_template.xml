@@ -13,14 +13,13 @@
             <field name="image_1920" position="after">
                 <field
                     name="image"
-                    string="Image"
                     class="oe_avatar"
                     options="{'preview_image': 'image_medium', 'zoom': true}"
                 />
             </field>
             <page name="sales" position="after">
                 <page name="images" string="Images">
-                    <field name="image_ids" widget="fs_image_relation_dnd_upload">
+                    <field name="image_ids">
                         <tree>
                             <field name="sequence" widget="handle" />
                             <field name="name" />

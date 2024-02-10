@@ -1,15 +1,49 @@
 # Copyright 2023 ACSONE SA/NV (http://acsone.eu).
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl.html).
+import base64
+import shutil
+import tempfile
 import warnings
 from unittest import mock
 
-from odoo.tests import Form
+from odoo.tests.common import TransactionCase
 from odoo.tools import mute_logger
 
-from .common import TestFSStorageCase
+from ..models.fs_storage import FSStorage
 
 
-class TestFSStorage(TestFSStorageCase):
+class TestFSStorage(TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
+        cls.backend: FSStorage = cls.env.ref("fs_storage.default_fs_storage")
+        cls.backend.json_options = {"target_options": {"auto_mkdir": "True"}}
+        cls.filedata = base64.b64encode(b"This is a simple file")
+        cls.filename = "test_file.txt"
+        cls.case_with_subdirectory = "subdirectory/here"
+        cls.demo_user = cls.env.ref("base.user_demo")
+
+    def setUp(self):
+        super().setUp()
+        mocked_backend = mock.patch.object(
+            self.backend.__class__, "_get_filesystem_storage_path"
+        )
+        mocked_get_filesystem_storage_path = mocked_backend.start()
+        tempdir = tempfile.mkdtemp()
+        mocked_get_filesystem_storage_path.return_value = tempdir
+
+        # pylint: disable=unused-variable
+        @self.addCleanup
+        def stop_mock():
+            mocked_backend.stop()
+            # recursively delete the tempdir
+            shutil.rmtree(tempdir)
+
+    def _create_file(self, backend: FSStorage, filename: str, filedata: str):
+        with backend.fs.open(filename, "wb") as f:
+            f.write(filedata)
+
     @mute_logger("py.warnings")
     def _test_deprecated_setting_and_getting_data(self):
         # Check that the directory is empty
@@ -116,37 +150,4 @@ class TestFSStorage(TestFSStorageCase):
             options.get("target_options")
             .get("target_options")
             .get("odoo_storage_path"),
-        )
-
-    def test_interface_values(self):
-        protocol = "file"  # should be available by default in the list of protocols
-        with Form(self.env["fs.storage"]) as new_storage:
-            new_storage.name = "Test storage"
-            new_storage.code = "code"
-            new_storage.protocol = protocol
-            self.assertEqual(new_storage.protocol, protocol)
-            # the options should follow the protocol
-            self.assertEqual(new_storage.options_protocol, protocol)
-            description = new_storage.protocol_descr
-            self.assertTrue("Interface to files on local storage" in description)
-        # this is still true after saving
-        self.assertEqual(new_storage.options_protocol, protocol)
-
-    def test_options_env(self):
-        self.backend.json_options = {"key": {"sub_key": "$KEY_VAR"}}
-        eval_json_options = {"key": {"sub_key": "TEST"}}
-        options = self.backend._get_fs_options()
-        self.assertDictEqual(options, self.backend.json_options)
-        self.backend.eval_options_from_env = True
-        with mock.patch.dict("os.environ", {"KEY_VAR": "TEST"}):
-            options = self.backend._get_fs_options()
-            self.assertDictEqual(options, eval_json_options)
-        with self.assertLogs(level="WARNING") as log:
-            options = self.backend._get_fs_options()
-        self.assertIn(
-            (
-                f"Environment variable KEY_VAR is not set for "
-                f"fs_storage {self.backend.display_name}."
-            ),
-            log.output[0],
         )

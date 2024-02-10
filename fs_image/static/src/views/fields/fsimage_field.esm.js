@@ -50,6 +50,9 @@ export class FSImageField extends ImageField {
                     fileTypeMagicWordMap[this.props.value.content[0]] || "png";
                 return `data:image/${magic};base64,${this.props.value.content}`;
             }
+            if (!this.rawCacheKey) {
+                this.rawCacheKey = this.props.record.data.__last_update;
+            }
             const model = this.props.record.resModel;
             const id = this.props.record.resId;
             let base_url = this.props.value.url;
@@ -69,6 +72,8 @@ export class FSImageField extends ImageField {
 
     onFileUploaded(info) {
         this.state.isValid = true;
+        // Invalidate the `rawCacheKey`.
+        this.rawCacheKey = null;
         this.props.update({
             filename: info.name,
             content: info.data,

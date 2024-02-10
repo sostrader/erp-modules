@@ -310,38 +310,30 @@ class FsStorage(models.Model):
         res_field = self.env.context.get("attachment_res_field")
         res_model = self.env.context.get("attachment_res_model")
         if res_field and res_model:
-            field = (
-                self.env["ir.model.fields"]
-                .sudo()
-                .search([("model", "=", res_model), ("name", "=", res_field)], limit=1)
+            field = self.env["ir.model.fields"].search(
+                [("model", "=", res_model), ("name", "=", res_field)], limit=1
             )
             if field:
                 storage = (
                     self.env["fs.storage"]
-                    .sudo()
                     .search([])
                     .filtered_domain([("field_ids", "in", [field.id])])
                 )
                 if storage:
                     return storage.code
         if res_model:
-            model = (
-                self.env["ir.model"].sudo().search([("model", "=", res_model)], limit=1)
-            )
+            model = self.env["ir.model"].search([("model", "=", res_model)], limit=1)
             if model:
                 storage = (
                     self.env["fs.storage"]
-                    .sudo()
                     .search([])
                     .filtered_domain([("model_ids", "in", [model.id])])
                 )
                 if storage:
                     return storage.code
 
-        storages = (
-            self.sudo()
-            .search([])
-            .filtered_domain([("use_as_default_for_attachments", "=", True)])
+        storages = self.search([]).filtered_domain(
+            [("use_as_default_for_attachments", "=", True)]
         )
         if storages:
             return storages[0].code
@@ -357,7 +349,7 @@ class FsStorage(models.Model):
         and the value is the limit in size below which attachments are kept in DB.
         0 means no limit.
         """
-        storage = self.sudo().get_by_code(code)
+        storage = self.get_by_code(code)
         if (
             storage
             and storage.use_as_default_for_attachments
@@ -369,17 +361,17 @@ class FsStorage(models.Model):
     @api.model
     @tools.ormcache("code")
     def _must_optimize_directory_path(self, code):
-        return self.sudo().get_by_code(code).optimizes_directory_path
+        return self.get_by_code(code).optimizes_directory_path
 
     @api.model
     @tools.ormcache("code")
     def _must_autovacuum_gc(self, code):
-        return self.sudo().get_by_code(code).autovacuum_gc
+        return self.get_by_code(code).autovacuum_gc
 
     @api.model
     @tools.ormcache("code")
     def _must_use_filename_obfuscation(self, code):
-        return self.sudo().get_by_code(code).use_filename_obfuscation
+        return self.get_by_code(code).use_filename_obfuscation
 
     @api.depends("base_url", "is_directory_path_in_url")
     def _compute_base_url_for_files(self):
@@ -401,7 +393,7 @@ class FsStorage(models.Model):
         :param attachment: an attachment record
         :return: the URL to access the attachment
         """
-        fs_storage = self.sudo().get_by_code(attachment.fs_storage_code)
+        fs_storage = self.get_by_code(attachment.fs_storage_code)
         if not fs_storage:
             return None
         base_url = fs_storage.base_url_for_files
@@ -412,9 +404,7 @@ class FsStorage(models.Model):
         # always remove the directory_path from the fs_filename
         # only if it's at the start of the filename
         fs_filename = attachment.fs_filename
-        if fs_storage.directory_path and fs_filename.startswith(
-            fs_storage.directory_path
-        ):
+        if fs_filename.startswith(fs_storage.directory_path):
             fs_filename = fs_filename.replace(fs_storage.directory_path, "")
         parts = [base_url, fs_filename]
         return self._normalize_url("/".join(parts))

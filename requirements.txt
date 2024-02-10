@@ -10,3 +10,5 @@ jsonschema==3.2.0
 fsspec
 paramiko
 python_slugify
+cachetools
+boto3
