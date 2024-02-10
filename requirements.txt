@@ -7,3 +7,6 @@ workalendar
 bravado_core 
 swagger_spec_validator
 jsonschema==3.2.0
+fsspec
+paramiko
+python_slugify
